@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.32.1](https://github.com/joshua-mo-143/rig/compare/rig-core-v0.32.0...rig-core-v0.32.1) - 2026-03-12
+
+### Fixed
+
+- *(gemini)* support URL-backed text documents (by @cursoragent)
+- forward max_tokens in Chat Completions API requests ([#1495](https://github.com/joshua-mo-143/rig/pull/1495)) (by @sonicxml) - #1495
+- populate cached_input_tokens in Chat Completions streaming ([#1485](https://github.com/joshua-mo-143/rig/pull/1485)) (by @sonicxml) - #1485
+- *(gemini)* correct ProviderBuilder impl for GeminiInteractionsBuilder ([#1482](https://github.com/joshua-mo-143/rig/pull/1482)) (by @adrianncovaci)
+- *(rig-1218)* gemini MCP tool invalid tool argument ([#1462](https://github.com/joshua-mo-143/rig/pull/1462)) (by @joshua-mo-143)
+
+### Other
+
+- fix link in rig-core README ([#1502](https://github.com/joshua-mo-143/rig/pull/1502)) (by @waltronix) - #1502
+- Feat/gemini interactions api ([#1230](https://github.com/joshua-mo-143/rig/pull/1230)) (by @iskng) - #1230
+
+### Contributors
+
+* @cursoragent
+* @waltronix
+* @sonicxml
+* @adrianncovaci
+* @joshua-mo-143
+* @iskng
+
+
 ## [0.32.0](https://github.com/0xPlaygrounds/rig/compare/rig-core-v0.31.0...rig-core-v0.32.0) - 2026-03-05
 
 ### Added
