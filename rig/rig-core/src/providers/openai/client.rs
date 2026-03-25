@@ -150,6 +150,26 @@ where
     }
 }
 
+impl Client<reqwest::Client> {
+    /// Create a new OpenAI Responses API client from custom environment variable names.
+    ///
+    /// This is useful for OpenAI-compatible providers that expose their API key and base URL
+    /// under provider-specific environment variables.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rig::providers::openai;
+    ///
+    /// let client = openai::Client::from_env_vars("VENICE_API_KEY", Some("VENICE_API_BASE_URL"))
+    ///     .completions_api();
+    /// ```
+    ///
+    /// Pass `None` for `base_url_var` to keep the default OpenAI base URL.
+    pub fn from_env_vars(api_key_var: &str, base_url_var: Option<&str>) -> Self {
+        build_client_from_env_vars(Self::builder(), api_key_var, base_url_var)
+    }
+}
+
 #[cfg(not(target_family = "wasm"))]
 impl Client<reqwest::Client> {
     /// WebSocket mode currently uses a native `tokio-tungstenite` transport and does
@@ -205,22 +225,53 @@ where
     }
 }
 
+impl CompletionsClient<reqwest::Client> {
+    /// Create a new OpenAI Completions API client from custom environment variable names.
+    ///
+    /// This is useful for OpenAI-compatible providers that expose their API key and base URL
+    /// under provider-specific environment variables.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rig::providers::openai;
+    ///
+    /// let client =
+    ///     openai::CompletionsClient::from_env_vars("VENICE_API_KEY", Some("VENICE_API_BASE_URL"));
+    /// ```
+    ///
+    /// Pass `None` for `base_url_var` to keep the default OpenAI base URL.
+    pub fn from_env_vars(api_key_var: &str, base_url_var: Option<&str>) -> Self {
+        build_client_from_env_vars(Self::builder(), api_key_var, base_url_var)
+    }
+}
+
+fn build_client_from_env_vars<Ext, B>(
+    mut builder: client::ClientBuilder<B, client::NeedsApiKey, reqwest::Client>,
+    api_key_var: &str,
+    base_url_var: Option<&str>,
+) -> client::Client<Ext, reqwest::Client>
+where
+    Ext: Provider,
+    B: ProviderBuilder<ApiKey = OpenAIApiKey, Extension<reqwest::Client> = Ext>,
+{
+    let api_key = std::env::var(api_key_var).unwrap_or_else(|_| panic!("{api_key_var} not set"));
+
+    if let Some(base_url_var) = base_url_var
+        && let Ok(base_url) = std::env::var(base_url_var)
+    {
+        builder = builder.base_url(&base_url);
+    }
+
+    builder.api_key(&api_key).build().unwrap()
+}
+
 impl ProviderClient for Client {
     type Input = OpenAIApiKey;
 
     /// Create a new OpenAI Responses API client from the `OPENAI_API_KEY` environment variable.
     /// Panics if the environment variable is not set.
     fn from_env() -> Self {
-        let base_url: Option<String> = std::env::var("OPENAI_BASE_URL").ok();
-        let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set");
-
-        let mut builder = Client::builder().api_key(&api_key);
-
-        if let Some(base) = base_url {
-            builder = builder.base_url(&base);
-        }
-
-        builder.build().unwrap()
+        Self::from_env_vars("OPENAI_API_KEY", Some("OPENAI_BASE_URL"))
     }
 
     fn from_val(input: Self::Input) -> Self {
@@ -234,16 +285,7 @@ impl ProviderClient for CompletionsClient {
     /// Create a new OpenAI Completions API client from the `OPENAI_API_KEY` environment variable.
     /// Panics if the environment variable is not set.
     fn from_env() -> Self {
-        let base_url: Option<String> = std::env::var("OPENAI_BASE_URL").ok();
-        let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set");
-
-        let mut builder = CompletionsClient::builder().api_key(&api_key);
-
-        if let Some(base) = base_url {
-            builder = builder.base_url(&base);
-        }
-
-        builder.build().unwrap()
+        Self::from_env_vars("OPENAI_API_KEY", Some("OPENAI_BASE_URL"))
     }
 
     fn from_val(input: Self::Input) -> Self {
@@ -265,12 +307,48 @@ pub(crate) enum ApiResponse<T> {
 
 #[cfg(test)]
 mod tests {
+    use super::{Client, CompletionsClient, OPENAI_API_BASE_URL};
     use crate::message::ImageDetail;
     use crate::providers::openai::{
         AssistantContent, Function, ImageUrl, Message, ToolCall, ToolType, UserContent,
     };
     use crate::{OneOrMany, message};
     use serde_path_to_error::deserialize;
+    use std::sync::{Mutex, OnceLock};
+
+    fn env_lock() -> &'static Mutex<()> {
+        static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        ENV_LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    struct EnvVarGuard {
+        names: Vec<&'static str>,
+    }
+
+    impl EnvVarGuard {
+        fn set(vars: &[(&'static str, &'static str)]) -> Self {
+            for (name, value) in vars {
+                // Tests mutate process-global environment state, so we serialize them with a mutex.
+                unsafe {
+                    std::env::set_var(name, value);
+                }
+            }
+
+            Self {
+                names: vars.iter().map(|(name, _)| *name).collect(),
+            }
+        }
+    }
+
+    impl Drop for EnvVarGuard {
+        fn drop(&mut self) {
+            for name in &self.names {
+                unsafe {
+                    std::env::remove_var(name);
+                }
+            }
+        }
+    }
 
     #[test]
     fn test_deserialize_message() {
@@ -624,5 +702,40 @@ mod tests {
             .api_key("dummy-key")
             .build()
             .expect("Client::builder() failed");
+    }
+
+    #[test]
+    fn test_from_env_vars_uses_custom_env_names() {
+        let _lock = env_lock().lock().unwrap();
+        let _guard = EnvVarGuard::set(&[
+            ("RIG_TEST_VENICE_API_KEY", "venice-key"),
+            ("RIG_TEST_VENICE_BASE_URL", "https://api.venice.ai/api/v1"),
+        ]);
+
+        let client =
+            Client::from_env_vars("RIG_TEST_VENICE_API_KEY", Some("RIG_TEST_VENICE_BASE_URL"));
+
+        assert_eq!(client.base_url(), "https://api.venice.ai/api/v1");
+        assert_eq!(
+            client.headers().get(http::header::AUTHORIZATION).unwrap(),
+            "Bearer venice-key"
+        );
+    }
+
+    #[test]
+    fn test_from_env_vars_keeps_default_base_url_when_optional_var_is_missing() {
+        let _lock = env_lock().lock().unwrap();
+        let _guard = EnvVarGuard::set(&[("RIG_TEST_OPENAI_API_KEY_ONLY", "openai-key")]);
+
+        let client = CompletionsClient::from_env_vars(
+            "RIG_TEST_OPENAI_API_KEY_ONLY",
+            Some("RIG_TEST_MISSING_OPENAI_BASE_URL"),
+        );
+
+        assert_eq!(client.base_url(), OPENAI_API_BASE_URL);
+        assert_eq!(
+            client.headers().get(http::header::AUTHORIZATION).unwrap(),
+            "Bearer openai-key"
+        );
     }
 }
