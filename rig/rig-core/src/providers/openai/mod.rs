@@ -1,5 +1,7 @@
 //! OpenAI API client and Rig integration
 //!
+//! This client also works with OpenAI-compatible APIs by overriding the base URL.
+//!
 //! # Example
 //! ```
 //! use rig::providers::openai;
@@ -7,6 +9,18 @@
 //! let client = openai::Client::new("YOUR_API_KEY");
 //!
 //! let gpt4o = client.completion_model(openai::GPT_4O);
+//! ```
+//!
+//! ```no_run
+//! use rig::providers::openai;
+//!
+//! let client = openai::Client::builder()
+//!     .api_key("YOUR_VENICE_API_KEY")
+//!     .base_url("https://api.venice.ai/api/v1")
+//!     .build()?;
+//!
+//! let model = client.completions_api().completion_model("venice-uncensored");
+//! # Ok::<(), rig::client::ClientBuilderError>(())
 //! ```
 pub mod client;
 pub mod completion;
