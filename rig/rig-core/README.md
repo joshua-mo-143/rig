@@ -91,6 +91,11 @@ The following providers are available as separate companion-crates:
 - Fastembed: [`rig-fastembed`](https://github.com/0xPlaygrounds/rig/tree/main/rig-fastembed)
 - Google Vertex: [`rig-vertexai`](https://github.com/0xPlaygrounds/rig/tree/main/rig-vertexai)
 
+OpenAI-compatible Chat Completions endpoints can also be used through
+`rig::providers::openai` by overriding the base URL and switching the model to
+`.completions_api()`. For a concrete example using Venice.ai, see
+[`rig-core/examples/agent_with_venice.rs`](./examples/agent_with_venice.rs).
+
 ## Who is using Rig?
 Below is a non-exhaustive list of companies and people who are using Rig:
 - [St Jude](https://www.stjude.org/) - Using Rig for a chatbot utility as part of [`proteinpaint`](https://github.com/stjude/proteinpaint), a genomics visualisation tool.
