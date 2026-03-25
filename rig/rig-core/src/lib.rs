@@ -77,6 +77,7 @@
 //! - OpenRouter
 //! - Perplexity
 //! - Together
+//! - Venice
 //! - Voyage AI
 //! - xAI
 //!

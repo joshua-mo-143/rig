@@ -59,7 +59,7 @@ More information about this crate can be found in the [official](https://docs.ri
 ## Features
 - Agentic workflows that can handle multi-turn streaming and prompting
 - Full [GenAI Semantic Convention](https://opentelemetry.io/docs/specs/semconv/gen-ai/) compatibility
-- 20+ model providers, all under one singular unified interface
+- 20+ model providers, including Venice.ai, all under one singular unified interface
 - 10+ vector store integrations, all under one singular unified interface
 - Full support for LLM completion and embedding workflows
 - Support for transcription, audio generation and image generation model capabilities
