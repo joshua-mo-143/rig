@@ -209,6 +209,7 @@ impl ProviderClient for Client {
     type Input = OpenAIApiKey;
 
     /// Create a new OpenAI Responses API client from the `OPENAI_API_KEY` environment variable.
+    /// If `OPENAI_BASE_URL` is set, requests are routed to that OpenAI-compatible base URL instead.
     /// Panics if the environment variable is not set.
     fn from_env() -> Self {
         let base_url: Option<String> = std::env::var("OPENAI_BASE_URL").ok();
@@ -232,6 +233,7 @@ impl ProviderClient for CompletionsClient {
     type Input = OpenAIApiKey;
 
     /// Create a new OpenAI Completions API client from the `OPENAI_API_KEY` environment variable.
+    /// If `OPENAI_BASE_URL` is set, requests are routed to that OpenAI-compatible base URL instead.
     /// Panics if the environment variable is not set.
     fn from_env() -> Self {
         let base_url: Option<String> = std::env::var("OPENAI_BASE_URL").ok();
